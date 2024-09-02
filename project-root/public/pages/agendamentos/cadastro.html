@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cadastrar Agendamento</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        .error-message {
+            color: red;
+            font-size: 0.875em;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div style="margin: 36px;">
+        <h1>Cadastrar Agendamento</h1>
+        <br />
+        <form id="appointment-form" class="row g-3">
+            <div class="col-md-3">
+                <label for="client" class="form-label">Cliente:</label>
+                <select id="client" class="form-control">
+                    <option value="" selected>Selecione um cliente</option>
+                    <!-- Outras opções de clientes serão carregadas dinamicamente -->
+                </select>
+                <div id="client-error" class="error-message"></div>
+            </div>
+            <div class="col-md-3">
+                <label for="procedure" class="form-label">Procedimento:</label>
+                <select id="procedure" class="form-control">
+                    <option value="" selected>Selecione um procedimento</option>
+                    <option value="Colocação (Brasileiro)">Colocação (Brasileiro)</option>
+                    <option value="Colocação (Fox Eyes)">Colocação (Fox Eyes)</option>
+                    <option value="Colocação (Classico)">Colocação (Classico)</option>
+                    <option value="Colocação (Sirena)">Colocação (Sirena)</option>
+                    <option value="Manutenção">Manutenção</option>
+                    <option value="Remoção">Remoção</option>
+                    <option value="Sobrancelha (Rena)">Sobrancelha (Henna)</option>
+                    <option value="Sobrancelha (Sem Rena)">Sobrancelha (Sem Henna)</option>
+                </select>
+                <div id="procedure-error" class="error-message"></div>
+            </div>
+            <div class="col-md-3">
+                <label for="date" class="form-label">Dia do agendamento:</label>
+                <input type="date" id="date" class="form-control" />
+                <div id="date-error" class="error-message"></div>
+            </div>
+            <div class="col-md-3">
+                <label for="time" class="form-label">Hora do agendamento:</label>
+                <input type="time" id="time" class="form-control" />
+                <div id="time-error" class="error-message"></div>
+            </div>
+            <div class="col-12">
+                <button type="submit" id="add-appointment-btn" class="btn btn-primary" disabled>
+                    <span id="btn-text">Cadastrar Agendamento</span>
+                    <span id="btn-spinner" class="spinner-border spinner-border-sm" style="display: none"></span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- <script src="../../app.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const clientSelect = document.getElementById("client");
+            const procedureSelect = document.getElementById("procedure");
+            const dateInput = document.getElementById("date");
+            const timeInput = document.getElementById("time");
+            const addAppointmentBtn = document.getElementById("add-appointment-btn");
+
+            const clientError = document.getElementById("client-error");
+            const procedureError = document.getElementById("procedure-error");
+            const dateError = document.getElementById("date-error");
+            const timeError = document.getElementById("time-error");
+
+            loadClientsIntoSelect();
+
+            function loadClientsIntoSelect() {
+                fetch("/api/clients")
+                    .then((response) => response.json())
+                    .then((data) => {
+                        const clientSelect = document.getElementById("client");
+                        clientSelect.innerHTML = '<option value="" selected>Selecione um cliente</option>'; // Limpa o select antes de preencher novamente
+
+                        data.clients.forEach((client) => {
+                            const option = document.createElement("option");
+                            option.value = client._id;  // Use o campo correto para o ID
+                            option.textContent = client.name;
+                            clientSelect.appendChild(option);
+                        });
+                    })
+                    .catch((error) => console.error("Erro ao carregar clientes:", error));
+            }
+
+            // Função para ativar o botão somente se todos os campos estiverem válidos
+            function checkFormValidity() {
+                validateClient();
+                validateProcedure();
+                validateDate();
+                validateTime();
+
+                if (clientError.textContent === "" && procedureError.textContent === "" &&
+                    dateError.textContent === "" && timeError.textContent === "") {
+                    addAppointmentBtn.disabled = false; // Habilita o botão se todos os campos estiverem válidos
+                } else {
+                    addAppointmentBtn.disabled = true; // Desabilita o botão se algum campo for inválido
+                }
+            }
+
+            clientSelect.addEventListener("change", () => {
+                validateClient();
+                checkFormValidity();
+            });
+
+            procedureSelect.addEventListener("change", () => {
+                validateProcedure();
+                checkFormValidity();
+            });
+
+            dateInput.addEventListener("input", () => {
+                validateDate();
+                checkFormValidity();
+            });
+
+            timeInput.addEventListener("input", () => {
+                validateTime();
+                checkFormValidity();
+            });
+
+            // Função de validação para o campo de cliente
+            function validateClient() {
+                if (clientSelect.value === "") {
+                    clientError.textContent = "Campo obrigatório.";
+                } else {
+                    clientError.textContent = "";
+                }
+            }
+
+            // Função de validação para o campo de procedimento
+            function validateProcedure() {
+                if (procedureSelect.value === "") {
+                    procedureError.textContent = "Campo obrigatório.";
+                } else {
+                    procedureError.textContent = "";
+                }
+            }
+
+            // Função de validação para o campo de data
+            function validateDate() {
+                if (dateInput.value.trim() === "") {
+                    dateError.textContent = "Campo obrigatório.";
+                } else {
+                    dateError.textContent = "";
+                }
+            }
+
+            // Função de validação para o campo de hora
+            function validateTime() {
+                if (timeInput.value.trim() === "") {
+                    timeError.textContent = "Campo obrigatório.";
+                } else {
+                    timeError.textContent = "";
+                }
+            }
+
+            // Validações ao enviar o formulário
+            document.getElementById("appointment-form").addEventListener("submit", function (e) {
+                e.preventDefault(); // Impede o envio padrão do formulário
+
+                validateClient();
+                validateProcedure();
+                validateDate();
+                validateTime();
+
+                if (clientError.textContent === "" && procedureError.textContent === "" &&
+                    dateError.textContent === "" && timeError.textContent === "") {
+                    addAppointment();
+                }
+            });
+
+            function addAppointment() {
+                const clientId = clientSelect.value;
+                const procedure = procedureSelect.value;
+                const date = dateInput.value;
+                const time = timeInput.value;
+
+                const addClientBtn = document.getElementById("add-appointment-btn");
+                const btnText = document.getElementById("btn-text");
+                const btnSpinner = document.getElementById("btn-spinner");
+
+                btnText.style.display = "none";
+                btnSpinner.style.display = "inline-block";
+                addClientBtn.disabled = true;
+
+                fetch("/api/appointments", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ clientId, procedure, date, time })
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        setTimeout(() => {
+                            btnText.style.display = "inline";
+                            btnSpinner.style.display = "none";
+                            addClientBtn.disabled = false;
+
+                            if (data.error) {
+                                console.error(data.error);
+                            } else {
+                                window.location.href = "listagem.html";
+                            }
+                        }, 3000);
+                    })
+                    .catch((error) => {
+                        setTimeout(() => {
+                            btnText.style.display = "inline";
+                            btnSpinner.style.display = "none";
+                            addClientBtn.disabled = false;
+                            console.error("Erro ao adicionar agendamento:", error);
+                        }, 3000);
+                    });
+            }
+        });
+    </script>
+</body>
+</html>

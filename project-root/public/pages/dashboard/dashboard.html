@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="../../../styles.css">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div style="margin: 36px;">
+      <h1 class="mb-4 text-center">Dashboard</h1>
+      <div class="row">
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Total de Agendamentos</h5>
+              <p id="total-appointments" class="card-text">0</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Total de Clientes</h5>
+              <p id="total-clients" class="card-text">0</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="margin: 36px;">
+        <h1 class="mb-4 text-center">Agendamentos por Cliente</h1>
+        <canvas id="appointmentsChart"></canvas>
+      </div>
+    </div>
+
+    <script src="../../app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        fetch("/api/appointments-by-client")
+          .then((response) => response.json())
+          .then((data) => {
+            const clientNames = data.map((item) => item.client_name);
+            const appointmentCounts = data.map(
+              (item) => item.appointment_count
+            );
+
+            const ctx = document
+              .getElementById("appointmentsChart")
+              .getContext("2d");
+            const chart = new Chart(ctx, {
+              type: "bar", // Gráfico de barras
+              data: {
+                labels: clientNames,
+                datasets: [
+                  {
+                    label: "Quantidade de Agendamentos",
+                    data: appointmentCounts,
+                    backgroundColor: "rgba(75, 192, 192, 0.2)",
+                    borderColor: "rgba(75, 192, 192, 1)",
+                    borderWidth: 1,
+                    barThickness: 40, // Aumenta a espessura das barras para preenchimento
+                    maxBarThickness: 50, // Limita a espessura máxima das barras
+                  },
+                ],
+              },
+              options: {
+                responsive: true,
+                scales: {
+                  x: {
+                    title: {
+                      display: true,
+                      text: "Clientes",
+                      font: {
+                        size: "16px",
+                        weight: "bold", // Deixa o texto em negrito
+                      },
+                    },
+                    grid: {
+                      display: false, // Remove as linhas de grade verticais
+                    },
+                  },
+                  y: {
+                    beginAtZero: true,
+                    title: {
+                      display: true,
+                      text: "Quantidade de Agendamentos",
+                      font: {
+                        weight: "bold",
+                        size: "16px",
+                      },
+                    },
+                    ticks: {
+                      stepSize: 1, // Define o intervalo de 1 em 1 no eixo Y
+                    },
+                    grid: {
+                      color: "rgba(200, 200, 200, 0.3)", // Linhas de grade mais suaves
+                    },
+                  },
+                },
+                plugins: {
+                  legend: {
+                    display: false, // Remove a legenda se preferir mais espaço para o gráfico
+                  },
+                },
+              },
+            });
+          })
+          .catch((error) =>
+            console.error("Erro ao carregar os dados do gráfico:", error)
+          );
+
+        fetch("/api/dashboard")
+          .then((response) => response.json())
+          .then((data) => {
+            document.getElementById("total-appointments").textContent =
+              data.totalAppointments;
+            document.getElementById("total-clients").textContent =
+              data.totalClients;
+          })
+          .catch((error) =>
+            console.error("Erro ao carregar o dashboard:", error)
+          );
+      });
+    </script>
+  </body>
+</html>

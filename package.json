@@ -1,0 +1,25 @@
+{
+  "name": "sistema-da-livia",
+  "version": "1.0.0",
+  "description": "Sistema de cadastro de clientes para uma lash designer",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "bootstrap": "^5.3.3",
+    "express": "^4.17.1",
+    "mongodb": "^6.8.0",
+    "scss": "^0.2.4",
+    "sqlite3": "^5.0.2"
+  },
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "devDependencies": {
+    "sass": "^1.77.8",
+    "sass-loader": "^16.0.1",
+    "webpack": "^5.94.0"
+  }
+}

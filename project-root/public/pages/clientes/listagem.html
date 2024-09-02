@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meus Clientes</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div style="margin: 36px;">
+      <h1 class="mb-4">Meus Clientes</h1>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="filter-name" class="form-label">Filtrar por Nome:</label>
+          <input
+            type="text"
+            id="filter-name"
+            class="form-control"
+            placeholder="Digite o nome do cliente"
+          />
+        </div>
+      </div>
+      <div style="max-height: 550px; overflow-y: auto;">
+        <table id="client-table" class="table table-striped">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nome</th>
+              <th>Data de Nascimento</th>
+              <th>Telefone</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="client-count" class="mt-3 text-center"></div>
+    </div>
+    <div id="dialog" class="modal fade" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Confirmar Exclusão</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p>Tem certeza que deseja excluir este cliente?</p>
+          </div>
+          <div class="modal-footer">
+            <button id="confirm-delete" type="button" class="btn btn-danger">
+              Sim
+            </button>
+            <button
+              id="cancel-delete"
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Não
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", initClientList);
+
+      function initClientList() {
+        loadClients();
+        setupFilter();
+        setupDeleteConfirmation();
+      }
+
+      function loadClients(searchQuery = '') {
+        fetch(`/api/clients?search=${encodeURIComponent(searchQuery)}`)
+          .then((response) => response.json())
+          .then((data) => {
+            const tbody = document.querySelector("#client-table tbody");
+            tbody.innerHTML = "";
+
+            if (data.clients && Array.isArray(data.clients)) {
+              data.clients.forEach((client) => {
+                const formattedBirthdate = formatDateToBrazilian(client.birthdate);
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                  <td>${client._id}</td>
+                  <td>${client.name}</td>
+                  <td>${formattedBirthdate}</td>
+                  <td>${client.phone}</td>
+                  <td class="action-buttons">
+                      <div style="display: flex; gap: 8px; margin-left: auto; margin-right: auto;">
+                        <button class="btn btn-sm btn-light" onclick="editClient('${client._id}')" title="Editar Cliente">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button class="btn btn-sm btn-light" onclick="accessTechnicalSheet('${client._id}', '${client.name}')" title="Ficha técnica">
+                            <i class="fab fa-solid fa-stethoscope"></i>
+                        </button>
+                        <button class="btn btn-sm btn-light" onclick="sendWhatsAppMessage('${client.phone}', '${client.name}')" title="Enviar Mensagem via WhatsApp">
+                            <i class="fab fa-whatsapp"></i>
+                        </button>
+                        <button class="btn btn-sm btn-light" onclick="promptDeleteClient('${client._id}')" title="Excluir cliente">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                      </div>
+                  </td>
+                `;
+                tbody.appendChild(tr);
+              });
+
+              document.getElementById('client-count').textContent = `Total de clientes: ${data.clients.length}`;
+            } else {
+              console.error("A estrutura de dados recebida não está correta:", data);
+            }
+          })
+          .catch((error) => console.error("Erro ao carregar clientes:", error));
+      }
+
+      function formatDateToBrazilian(dateString) {
+        const date = new Date(dateString);
+        const utcDay = date.getUTCDate();
+        const utcMonth = date.getUTCMonth() + 1; // Janeiro é 0!
+        const utcYear = date.getUTCFullYear();
+        const day = String(utcDay).padStart(2, "0");
+        const month = String(utcMonth).padStart(2, "0");
+        return `${day}/${month}/${utcYear}`;
+      }
+
+      function setupFilter() {
+        const filterNameInput = document.getElementById('filter-name');
+        if (filterNameInput) {
+          filterNameInput.addEventListener('input', function() {
+            const searchQuery = this.value.toLowerCase();
+            loadClients(searchQuery);
+          });
+        } else {
+          console.error("Elemento #filter-name não encontrado no DOM.");
+        }
+      }
+
+      function promptDeleteClient(id) {
+        window.clientIdToDelete = id;
+        const dialog = new bootstrap.Modal(document.getElementById("dialog"));
+        dialog.show();
+      }
+
+      function setupDeleteConfirmation() {
+        const confirmButton = document.getElementById("confirm-delete");
+        if (confirmButton) {
+          confirmButton.addEventListener("click", confirmDeleteClient);
+        }
+      }
+
+      function confirmDeleteClient() {
+        if (window.clientIdToDelete !== null) {
+          fetch(`/api/clients/${window.clientIdToDelete}`, {
+            method: "DELETE",
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("Erro ao deletar cliente");
+              }
+              return response.json();
+            })
+            .then((data) => {
+              loadClients();
+              window.clientIdToDelete = null;
+              const dialog = bootstrap.Modal.getInstance(
+                document.getElementById("dialog")
+              );
+              dialog.hide();
+            })
+            .catch((error) => {
+              console.error("Erro ao remover cliente:", error);
+            });
+        }
+      }
+
+      function sendWhatsAppMessage(phone, clientName) {
+        const firstName = clientName.split(' ')[0]; 
+        const defaultMessage = `Olá ${firstName}! Tudo bem com você?`;
+        const formattedPhone = phone.replace(/\D/g, '');
+        const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(defaultMessage)}`;
+
+        window.open(whatsappUrl, '_blank');
+      }
+
+      function editClient(id) {
+        const clientsList = JSON.parse(sessionStorage.getItem("clientsList")) || [];
+        const client = clientsList.find((c) => c._id === id);
+        if (client) {
+          localStorage.setItem("clientToEdit", JSON.stringify(client));
+          window.location.href = "cadastro.html";
+        }
+      }
+
+      function accessTechnicalSheet(clientId, clientName) {
+        const clientData = { clientId, clientName };
+        localStorage.setItem("clientForTechnicalSheet", JSON.stringify(clientData));
+        window.location.href = "ficha_tecnica/ficha_tecnica.html";
+      }
+    </script>
+  </body>
+</html>
